@@ -128,6 +128,7 @@ public:
     void traverse_test_PFAC_speed(DFA *dfa, int repetition_times = 10, FILE *stream=stdout);
     /*测试改写代码，增加IPC（单核指令并行度）*/
     void traverse_test_PFAC_speed2(DFA *dfa, int repetition_times = 10, FILE *stream=stdout);
+    void traverse_test_PFAC_speed_DFC_improve(DFA *dfa, int repetition_times = 10, FILE *stream=stdout);
 
 	/*dave add: traverses the given prefix_dfa and prints statistics to stream*/
 	void traverse(prefix_DFA* prefixDfa, match_statics *statics, FILE *stream=stdout);

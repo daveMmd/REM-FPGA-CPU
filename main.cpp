@@ -264,6 +264,7 @@ int main(int argc, char **argv){
         auto parser = regex_parser(false, false);
         auto *dfalis = new list<DFA*>();
 
+#if 0//生成DFA/AC
         for(auto &re: *regex_list){
             NFA* nfa = parser.parse_from_regex(re);
             DFA* dfa = nfa->nfa2dfa();
@@ -274,7 +275,8 @@ int main(int argc, char **argv){
         printf("dfa size: %d\n", dfa->size());
 
         dfalis = new list<DFA*>();
-
+#endif
+        //生成PFDFA / PFAC
         for(auto &re: *regex_list) {
             char *anchor_re = (char *) malloc(sizeof(char) * (1000 + 5));
             if(re[0] == '^'){
@@ -336,6 +338,7 @@ int main(int argc, char **argv){
 
         if(anchor_dfa != nullptr){
             tr->traverse_test_PFAC_speed(anchor_dfa, 1);
+            tr->traverse_test_PFAC_speed_DFC_improve(anchor_dfa, 1);
             //tr->traverse_test_PFAC_speed2(anchor_dfa, 1);
         }
         delete tr;

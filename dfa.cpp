@@ -253,12 +253,18 @@ void DFA::minimize() {
     // block information:
     // [0..n-1] stores which block a state belongs to,
     // [n..2*n-1] stores how many elements each block has
-    int block[2*n]; for(i=0;i<2*n;i++) block[i]=0;
+    //int block[2*n];
+    int* block = (int*) malloc(sizeof(int) * 2 * n);
+    for(i=0;i<2*n;i++) block[i]=0;
     //fprintf(stderr, "locE");
     // implements a doubly linked list of states (these are the actual blocks)
-    int b_forward[2*n]; for(i=0;i<2*n;i++) b_forward[i]=0;
+    //int b_forward[2*n];
+    int *b_forward = (int*) malloc(sizeof(int) * 2 * n);
+    for(i=0;i<2*n;i++) b_forward[i]=0;
     //fprintf(stderr, "locF");
-    int b_backward[2*n]; for(i=0;i<2*n;i++) b_backward[i]=0;
+    //int b_backward[2*n];
+    int *b_backward = (int*) malloc(sizeof(int) * 2 * n);
+    for(i=0;i<2*n;i++) b_backward[i]=0;
     //fprintf(stderr, "locD");
     // the last of the blocks currently in use (in [n..2*n-1])
     // (end of list marker, points to the last used block)
@@ -279,7 +285,8 @@ void DFA::minimize() {
     // inverse of the transition state_table
     // if t = inv_delta[s][c] then { inv_delta_set[t], inv_delta_set[t+1], .. inv_delta_set[k] }
     // is the set of states, with inv_delta_set[k] = -1 and inv_delta_set[j] >= 0 for t <= j < k  
-    int *inv_delta[n];
+    //int *inv_delta[n];
+    int **inv_delta = (int**) malloc(sizeof(int*) * n);
     for(i=0;i<n;i++) inv_delta[i]=allocate_int_array(CSIZE);
     int *inv_delta_set=allocate_int_array(2*n*CSIZE);
 
@@ -287,22 +294,27 @@ void DFA::minimize() {
     // twin stores two things: 
     // twin[0]..twin[numSplit-1] is the list of blocks that have been split
     // twin[B_i] is the twin of block B_i
-    int twin[2*n];
+    //int twin[2*n];
+    int *twin = allocate_int_array(2*n);
     int numSplit;
 
     // SD[B_i] is the the number of states s in B_i with delta(s,a) in B_j
     // if SD[B_i] == block[B_i], there is no need to split
-    int SD[2*n]; // [only SD[n..2*n-1] is used]
+    //int SD[2*n]; // [only SD[n..2*n-1] is used]
+    int *SD = allocate_int_array(2 * n);
 
 
     // for fixed (B_j,a), the D[0]..D[numD-1] are the inv_delta(B_j,a)
-    int D[n];
+    //int D[n];
+    int *D = allocate_int_array(n);
     int numD;    
 
     // initialize inverse of transition state_table
     int lastDelta = 0;
-    int inv_lists[n]; // holds a set of lists of states
-    int inv_list_last[n]; // the last element
+    //int inv_lists[n]; // holds a set of lists of states
+    //int inv_list_last[n]; // the last element
+    int *inv_lists = allocate_int_array(n);
+    int *inv_list_last = allocate_int_array(n);
         
     int c,s;
     
@@ -599,14 +611,17 @@ void DFA::minimize() {
     
     // trans[i] is the state j that will replace state i, i.e. 
     // states i and j are equivalent
-    int trans [_size];
+    //int trans [_size];
+    int *trans = allocate_int_array(_size);
     
     // kill[i] is true iff state i is redundant and can be removed
-    bool kill[_size];
+    //bool kill[_size];
+    bool* kill = (bool*) malloc(sizeof(bool) * _size);
     
     // move[i] is the amount line i has to be moved in the transition state_table
     // (because states j < i have been removed)
-    int move [_size];
+    //int move [_size];
+    int *move = allocate_int_array(_size);
     
     // fill arrays trans[] and kill[] (in O(n))
     for (int b = b0+1; b <= lastBlock; b++) { // b0 contains the error state
@@ -686,6 +701,20 @@ void DFA::minimize() {
     marking=reallocate_int_array(marking,_size);	
     if (default_tx!=NULL) {free(default_tx); default_tx=NULL;}
     entry_allocated=_size;
+
+    //free dave add malloc
+    free(inv_delta);
+    free(b_forward);
+    free(b_backward);
+    free(block);
+    free(twin);
+    free(SD);
+    free(D);
+    free(inv_list_last);
+    free(inv_lists);
+    free(trans);
+    free(kill);
+    free(move);
 
     //fprintf(stderr, "loc10");
 	if (VERBOSE) fprintf(stdout,"DFA:: minimize: after minimization states = %u\n",_size);

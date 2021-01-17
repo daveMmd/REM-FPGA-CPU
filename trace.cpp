@@ -262,6 +262,71 @@ void trace::traverse_test_PFAC_speed(DFA *dfa, int repetition_times, FILE *strea
                 if(state == dfa->dead_state){
                     break;
                 }
+                    //else if (unlikely(state <= dfa->max_accept_state)){
+                else if (state <= dfa->max_accept_state){
+                    matched_times++;
+                }
+            }
+        }
+    }
+    gettimeofday(&end, nullptr);
+    printf("matched_times:%d\n", matched_times);
+    double time_cost_seconds = (end.tv_sec - start.tv_sec) + 0.000001 * (end.tv_usec - start.tv_usec);
+
+    double throughput_Mbps = flen * 1.0 / time_cost_seconds / 1000000 * 8 * repetition_times;
+    printf("Throughput: %lf\n", throughput_Mbps);
+}
+
+void trace::traverse_test_PFAC_speed_DFC_improve(DFA *dfa, int repetition_times, FILE *stream){
+    if (tracefile==NULL) fatal("trace file is NULL!");
+    fseek(tracefile, 0, SEEK_END);
+    int flen = ftell(tracefile);
+    rewind(tracefile);
+
+    char *input_data = (char *) malloc(sizeof(char) * (flen + 100));
+    char c = fgetc(tracefile);
+    int input_offset = 0;
+    while(c!=EOF){
+        input_data[input_offset++] = c;
+        c=fgetc(tracefile);
+    }
+
+    timeval start, end;
+    int matched_times = 0;
+
+    /*初始化2字节DF*/
+    bool DF[65536];
+    for(bool & i : DF) i = false;
+    for(int i = 0; i <= 255; i++){
+        state_t state = dfa->initial_state;
+        state = dfa->get_next_state(state, i);
+        for(int j = 0; j <= 255; j++){
+            state_t state_2nd_level = dfa->get_next_state(state, j); //dead_state has state transition?
+            if(state == dfa->dead_state && state_2nd_level != dfa->dead_state) fprintf(stderr, "deadstate transition error!\n");
+            DF[i * 256 + j] = (state_2nd_level != dfa->dead_state);
+        }
+    }
+
+    gettimeofday(&start, nullptr);
+    for(int i = 0; i < repetition_times; i++){
+        char c1 = 0;
+        for(int start = 0; start < flen; start++){
+            //char c1 = input_data[start];
+            char c2 = input_data[start];
+            int DF_ind = (((unsigned char) c1) << 8) + ((unsigned char) c2);
+            c1 = c2;
+            if(start && !DF[DF_ind]) continue;
+
+            state_t state = dfa->initial_state; //initial state
+            input_offset = start;
+            //while(likely(input_offset < flen)){
+            while(input_offset < flen){
+                char c = input_data[input_offset++];
+                state = dfa->get_next_state(state,(unsigned char)c);
+                //if(likely(state == dfa->dead_state)){
+                if(state == dfa->dead_state){
+                    break;
+                }
                 //else if (unlikely(state <= dfa->max_accept_state)){
                 else if (state <= dfa->max_accept_state){
                     matched_times++;
