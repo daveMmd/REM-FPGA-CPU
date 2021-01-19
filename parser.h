@@ -105,6 +105,8 @@ public:
     static int process_escape(const char *re, int ptr, int_set *chars);
 
     NFA *parse_from_regex(char *re);
+
+    NFA *string2nfa(char *re, bool anchor = false);
 private:
 
 	//parses a regular expressions into the given NFA

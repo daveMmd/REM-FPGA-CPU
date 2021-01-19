@@ -8,4 +8,5 @@
 #include <list>
 
 std::list<char *>* read_regexset(char* fname);
+std::list<char *>* read_regexset_hex(char* fname);
 #endif //BECCHI_REGEX_UTIL_H

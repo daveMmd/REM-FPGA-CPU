@@ -838,3 +838,20 @@ NFA *regex_parser::parse_from_regexlist(list<char *> *regex_list) {
 
     return nfa->get_first();
 }
+
+NFA *regex_parser::string2nfa(char *re, bool anchor) {
+    NFA* nfa = new NFA();
+
+    for(int i=0; i<strlen(re); i++){
+        char c = re[i];
+        nfa=nfa->add_transition((unsigned char) c);
+    }
+
+    nfa->get_last()->accept();
+    nfa = nfa->get_first();
+
+    /*初始状态时刻活跃*/
+    if(!anchor) nfa->add_any(nfa);
+
+    return nfa->get_first();
+}

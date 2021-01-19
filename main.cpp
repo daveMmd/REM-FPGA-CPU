@@ -107,6 +107,7 @@ static void usage()
 /* configuration */
 static struct conf {
     char *regex_file;
+    char *hex_regex_file;
     char *in_file;
     char *out_file;
     char *dot_file;
@@ -196,7 +197,15 @@ static int parse_arguments(int argc, char **argv)
                 return 0;
             }
             config.regex_file=argv[i];
-        }else if(strcmp(argv[i], "-t") == 0 || strcmp(argv[i], "--trace") == 0){
+        }else if(strcmp(argv[i], "--hexp") == 0){
+            i++;
+            if(i==argc){
+                fprintf(stderr,"Hex regular expression file name missing.\n");
+                return 0;
+            }
+            config.hex_regex_file=argv[i];
+        }
+        else if(strcmp(argv[i], "-t") == 0 || strcmp(argv[i], "--trace") == 0){
             i++;
             if(i==argc){
                 fprintf(stderr,"Trace file name missing.\n");
@@ -244,7 +253,7 @@ int main(int argc, char **argv){
     if (config.trace_file!=NULL) check_file(config.trace_file,"r");
 
     // check that either a regex file or a DFA import file are given as input
-    if (config.regex_file==NULL && config.in_file==NULL){
+    if (config.regex_file==NULL && config.hex_regex_file== nullptr && config.in_file==NULL){
         fatal("No data file - please use either a regex or a DFA import file\n");
     }
     if (config.regex_file!=NULL && config.in_file!=NULL){
@@ -261,6 +270,7 @@ int main(int argc, char **argv){
 
     if (config.regex_file!=NULL){
         list<char *>* regex_list = read_regexset(config.regex_file);
+        //list<char *>* regex_list = read_regexset_hex(config.regex_file);
         auto parser = regex_parser(false, false);
         auto *dfalis = new list<DFA*>();
 
@@ -277,7 +287,10 @@ int main(int argc, char **argv){
         dfalis = new list<DFA*>();
 #endif
         //生成PFDFA / PFAC
+
+        int cnt = 0;
         for(auto &re: *regex_list) {
+            cnt++;
             char *anchor_re = (char *) malloc(sizeof(char) * (1000 + 5));
             if(re[0] == '^'){
                 strcpy(anchor_re, re);
@@ -285,11 +298,73 @@ int main(int argc, char **argv){
             else{
                 sprintf(anchor_re, "^%s", re);
             }
+            printf("cnt:%d hexs:%s anchor_re:%s\n", cnt, re, anchor_re);
             NFA* nfa = parser.parse_from_regex(anchor_re);
             DFA* dfa = nfa->nfa2dfa();
             dfa->minimize();
             dfalis->push_back(dfa);
         }
+
+        for(auto &dfai: *dfalis){
+            if(dfai->dead_state == NO_STATE){
+                fprintf(stderr, "dfa no dead_state!\n");
+            }
+            printf("dfa dead_state:%u\n", dfai->dead_state);
+        }
+
+        anchor_dfa = hm_dfalist2dfa(dfalis);
+
+        anchor_dfa->renumber();
+
+        printf("anchor_dfa->max_accept_state: %u\n", anchor_dfa->max_accept_state);
+
+        printf("anchor_dfa size: %d\n", anchor_dfa->size());
+    }
+    else if(config.hex_regex_file != nullptr){
+        //list<char *>* regex_list = read_regexset_hex(config.hex_regex_file);
+        list<char *>* regex_list = read_regexset(config.hex_regex_file);
+        auto parser = regex_parser(false, false);
+        auto *dfalis = new list<DFA*>();
+
+#if 1//生成DFA/AC
+        for(auto &re: *regex_list){
+            if(strlen(re) < 1) {
+                fprintf(stderr, "len(re) = 0!\n");
+                continue;
+            }
+            NFA* nfa = parser.string2nfa(re);
+            DFA* dfa = nfa->nfa2dfa();
+            /*FILE* file = fopen("dfa.dot", "w");
+            dfa->to_dot(file, "dfa");
+            fclose(file);*/
+            dfa->minimize();
+            dfalis->push_back(dfa);
+        }
+        dfa = hm_dfalist2dfa(dfalis);
+        printf("dfa size: %d\n", dfa->size());
+
+        //exit(0);
+        dfalis = new list<DFA*>();
+#endif
+        //生成PFDFA / PFAC
+        for(auto &re: *regex_list) {
+            if(strlen(re) < 1) {
+                fprintf(stderr, "len(re) = 0!\n");
+                continue;
+            }
+            NFA* nfa = parser.string2nfa(re, true);
+            DFA* dfa = nfa->nfa2dfa();
+            dfa->minimize();
+            dfalis->push_back(dfa);
+        }
+
+        for(auto &dfai: *dfalis){
+            if(dfai->dead_state == NO_STATE){
+                fprintf(stderr, "dfa no dead_state!\n");
+            }
+            //printf("dfa dead_state:%u\n", dfai->dead_state);
+        }
+
         anchor_dfa = hm_dfalist2dfa(dfalis);
 
         anchor_dfa->renumber();

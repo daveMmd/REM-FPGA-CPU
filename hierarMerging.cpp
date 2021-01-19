@@ -237,6 +237,7 @@ DFA *hm_dfalist2dfa(list<DFA*> *dfa_list, int k, bool improved){
             DFA* target_dfa;
             //assert(improved);
             target_dfa = dfas_merge_improve(dfa_tomerge_lis, dfa_tomerge_lis->size());
+            //if(target_dfa->dead_state == NO_STATE) fprintf(stderr, "target_dfa->dead_state == NO_STATE\n");
 #pragma omp critical (section4)
             {
                 next_round_dfa_lis->push_front(target_dfa);
