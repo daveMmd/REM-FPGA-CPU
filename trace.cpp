@@ -247,6 +247,7 @@ void trace::traverse_test_PFAC_speed(DFA *dfa, int repetition_times, FILE *strea
 
     timeval start, end;
     int matched_times = 0;
+    unsigned int mem_acc = 0;
 
     gettimeofday(&start, nullptr);
     for(int i = 0; i < repetition_times; i++){
@@ -258,6 +259,7 @@ void trace::traverse_test_PFAC_speed(DFA *dfa, int repetition_times, FILE *strea
             while(input_offset < flen){
                 char c = input_data[input_offset++];
                 state = dfa->get_next_state(state,(unsigned char)c);
+                mem_acc += 2;
                 //if(likely(state == dfa->dead_state)){
                 if(state == dfa->dead_state){
                     break;
@@ -270,7 +272,8 @@ void trace::traverse_test_PFAC_speed(DFA *dfa, int repetition_times, FILE *strea
         }
     }
     gettimeofday(&end, nullptr);
-    printf("matched_times:%d\n", matched_times);
+    printf("matched_times: %d\n", matched_times);
+    printf("memory accesses: %u, average memory accesess: %f\n", mem_acc, mem_acc*1.0/flen/repetition_times);
     double time_cost_seconds = (end.tv_sec - start.tv_sec) + 0.000001 * (end.tv_usec - start.tv_usec);
 
     double throughput_Mbps = flen * 1.0 / time_cost_seconds / 1000000 * 8 * repetition_times;
@@ -358,6 +361,7 @@ void trace::traverse_test_DFA_speed(DFA *dfa, int repetition_times, FILE *stream
 
     timeval start, end;
     int matched_times = 0;
+    unsigned int mem_acc = 0;
 
     gettimeofday(&start, nullptr);
     for(int i = 0; i < repetition_times; i++){
@@ -366,6 +370,7 @@ void trace::traverse_test_DFA_speed(DFA *dfa, int repetition_times, FILE *stream
         while(input_offset < flen){
             char c = input_data[input_offset++];
             state=dfa->get_next_state(state,(unsigned char)c);
+            mem_acc += 3;
             if (!dfa->accepts(state)->empty()){
                 matched_times++;
             }
@@ -373,6 +378,7 @@ void trace::traverse_test_DFA_speed(DFA *dfa, int repetition_times, FILE *stream
     }
     gettimeofday(&end, nullptr);
     printf("matched_times:%d\n", matched_times);
+    printf("memory accesses: %u, average memacc: %f\n", mem_acc, mem_acc*1.0 / flen / repetition_times);
     double time_cost_seconds = (end.tv_sec - start.tv_sec) + 0.000001 * (end.tv_usec - start.tv_usec);
 
     double throughput_Mbps = flen * 1.0 / time_cost_seconds / 1000000 * 8 * repetition_times;
