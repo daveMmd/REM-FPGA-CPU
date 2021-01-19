@@ -56,6 +56,7 @@
 #include "dfas_memory.h"
 #include "prefix_DFA.h"
 
+//#define DEBUG_MEM_ACC
 #define MIN_INPUTS 50000   //minimum size of the input, in case of probabilistic traversal
 #define MAX_INPUTS 1000000 //maximum size of the input, in case of probabilistic traversal
 

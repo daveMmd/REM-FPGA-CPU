@@ -237,17 +237,15 @@ void trace::traverse_test_PFAC_speed(DFA *dfa, int repetition_times, FILE *strea
     int flen = ftell(tracefile);
     rewind(tracefile);
 
-    char *input_data = (char *) malloc(sizeof(char) * (flen + 100));
-    char c = fgetc(tracefile);
+    unsigned char *input_data = (unsigned char *) malloc(sizeof(unsigned char) * (flen + 100));
+    fread(input_data, flen, 1, tracefile);
     int input_offset = 0;
-    while(c!=EOF){
-        input_data[input_offset++] = c;
-        c=fgetc(tracefile);
-    }
 
     timeval start, end;
     int matched_times = 0;
+#ifdef DEBUG_MEM_ACC
     unsigned int mem_acc = 0;
+#endif
 
     gettimeofday(&start, nullptr);
     for(int i = 0; i < repetition_times; i++){
@@ -257,14 +255,16 @@ void trace::traverse_test_PFAC_speed(DFA *dfa, int repetition_times, FILE *strea
             input_offset = start;
             //while(likely(input_offset < flen)){
             while(input_offset < flen){
-                char c = input_data[input_offset++];
-                state = dfa->get_next_state(state,(unsigned char)c);
+                unsigned char c = input_data[input_offset++];
+                state = dfa->get_next_state(state, c);
+#ifdef DEBUG_MEM_ACC
                 mem_acc += 2;
+#endif
                 //if(likely(state == dfa->dead_state)){
                 if(state == dfa->dead_state){
                     break;
                 }
-                    //else if (unlikely(state <= dfa->max_accept_state)){
+                //else if (unlikely(state <= dfa->max_accept_state)){
                 else if (state <= dfa->max_accept_state){
                     matched_times++;
                 }
@@ -273,7 +273,9 @@ void trace::traverse_test_PFAC_speed(DFA *dfa, int repetition_times, FILE *strea
     }
     gettimeofday(&end, nullptr);
     printf("matched_times: %d\n", matched_times);
+#ifdef DEBUG_MEM_ACC
     printf("memory accesses: %u, average memory accesess: %f\n", mem_acc, mem_acc*1.0/flen/repetition_times);
+#endif
     double time_cost_seconds = (end.tv_sec - start.tv_sec) + 0.000001 * (end.tv_usec - start.tv_usec);
 
     double throughput_Mbps = flen * 1.0 / time_cost_seconds / 1000000 * 8 * repetition_times;
@@ -286,16 +288,13 @@ void trace::traverse_test_PFAC_speed_DFC_improve(DFA *dfa, int repetition_times,
     int flen = ftell(tracefile);
     rewind(tracefile);
 
-    char *input_data = (char *) malloc(sizeof(char) * (flen + 100));
-    char c = fgetc(tracefile);
+    unsigned char *input_data = (unsigned char *) malloc(sizeof(unsigned char) * (flen + 100));
+    fread(input_data, flen, 1, tracefile);
     int input_offset = 0;
-    while(c!=EOF){
-        input_data[input_offset++] = c;
-        c=fgetc(tracefile);
-    }
 
     timeval start, end;
     int matched_times = 0;
+    int mem_acc = 0;
 
     /*初始化2字节DF*/
     bool DF[65536];
@@ -312,20 +311,26 @@ void trace::traverse_test_PFAC_speed_DFC_improve(DFA *dfa, int repetition_times,
 
     gettimeofday(&start, nullptr);
     for(int i = 0; i < repetition_times; i++){
-        char c1 = 0;
-        for(int start = 0; start < flen; start++){
+        unsigned char c1 = input_data[0];//assert offset 0 is not accept
+        for(int start = 1; start < flen; start++){
             //char c1 = input_data[start];
-            char c2 = input_data[start];
-            int DF_ind = (((unsigned char) c1) << 8) + ((unsigned char) c2);
+            unsigned char c2 = input_data[start];
+            int DF_ind = ((unsigned int)c1 << 8) + c2;
             c1 = c2;
-            if(start && !DF[DF_ind]) continue;
+#ifdef DEBUG_MEM_ACC
+            mem_acc += 2;
+#endif
+            if(!DF[DF_ind]) continue;
 
             state_t state = dfa->initial_state; //initial state
-            input_offset = start;
+            input_offset = start-1;
             //while(likely(input_offset < flen)){
             while(input_offset < flen){
-                char c = input_data[input_offset++];
-                state = dfa->get_next_state(state,(unsigned char)c);
+                unsigned char c = input_data[input_offset++];
+                state = dfa->get_next_state(state, c);
+#ifdef DEBUG_MEM_ACC
+                mem_acc += 2;
+#endif
                 //if(likely(state == dfa->dead_state)){
                 if(state == dfa->dead_state){
                     break;
@@ -339,6 +344,9 @@ void trace::traverse_test_PFAC_speed_DFC_improve(DFA *dfa, int repetition_times,
     }
     gettimeofday(&end, nullptr);
     printf("matched_times:%d\n", matched_times);
+#ifdef DEBUG_MEM_ACC
+    printf("memory accessess: %d, average mem_acc: %f\n", mem_acc * 1.0 / flen / repetition_times);
+#endif
     double time_cost_seconds = (end.tv_sec - start.tv_sec) + 0.000001 * (end.tv_usec - start.tv_usec);
 
     double throughput_Mbps = flen * 1.0 / time_cost_seconds / 1000000 * 8 * repetition_times;
@@ -351,26 +359,31 @@ void trace::traverse_test_DFA_speed(DFA *dfa, int repetition_times, FILE *stream
     int flen = ftell(tracefile);
     rewind(tracefile);
 
-    char *input_data = (char *) malloc(sizeof(char) * (flen + 100));
-    char c = fgetc(tracefile);
-    int input_offset = 0;
+    unsigned char *input_data = (unsigned char *) malloc(sizeof(unsigned char) * (flen + 100));
+    fread(input_data, flen, 1, tracefile);
+    /*char c = fgetc(tracefile);
     while(c!=EOF){
         input_data[input_offset++] = c;
         c=fgetc(tracefile);
-    }
+    }*/
 
     timeval start, end;
     int matched_times = 0;
+#ifdef DEBUG_MEM_ACC
     unsigned int mem_acc = 0;
+#endif
 
+    int input_offset = 0;
     gettimeofday(&start, nullptr);
     for(int i = 0; i < repetition_times; i++){
         state_t state=0;
         input_offset = 0;
         while(input_offset < flen){
-            char c = input_data[input_offset++];
-            state=dfa->get_next_state(state,(unsigned char)c);
+            unsigned char c = input_data[input_offset++];
+            state=dfa->get_next_state(state, c);
+#ifdef DEBUG_MEM_ACC
             mem_acc += 3;
+#endif
             if (!dfa->accepts(state)->empty()){
                 matched_times++;
             }
@@ -378,7 +391,9 @@ void trace::traverse_test_DFA_speed(DFA *dfa, int repetition_times, FILE *stream
     }
     gettimeofday(&end, nullptr);
     printf("matched_times:%d\n", matched_times);
+#ifdef DEBUG_MEM_ACC
     printf("memory accesses: %u, average memacc: %f\n", mem_acc, mem_acc*1.0 / flen / repetition_times);
+#endif
     double time_cost_seconds = (end.tv_sec - start.tv_sec) + 0.000001 * (end.tv_usec - start.tv_usec);
 
     double throughput_Mbps = flen * 1.0 / time_cost_seconds / 1000000 * 8 * repetition_times;

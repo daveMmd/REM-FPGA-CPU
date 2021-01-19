@@ -233,6 +233,16 @@ void check_file(char *filename, char *mode){
     }else fclose(file);
 }
 
+
+void test_outtrans(DFA *anchor_dfa){
+    int degree = 256;
+    for(symbol_t c = 0; c < CSIZE; c++ ){
+        if(anchor_dfa->get_next_state(anchor_dfa->initial_state, c) == anchor_dfa->dead_state){
+            degree--;
+        }
+    }
+    printf("0 state out degree: %d\n", degree);
+}
 /*
  *  MAIN - entry point
  */
@@ -274,7 +284,7 @@ int main(int argc, char **argv){
         auto parser = regex_parser(false, false);
         auto *dfalis = new list<DFA*>();
 
-#if 0//生成DFA/AC
+#if 1//生成DFA/AC
         for(auto &re: *regex_list){
             NFA* nfa = parser.parse_from_regex(re);
             DFA* dfa = nfa->nfa2dfa();
@@ -328,8 +338,8 @@ int main(int argc, char **argv){
 
 #if 1//生成DFA/AC
         for(auto &re: *regex_list){
-            if(strlen(re) < 1) {
-                fprintf(stderr, "len(re) = 0!\n");
+            if(strlen(re) < 2) {
+                fprintf(stderr, "len(re) < 2!\n");
                 continue;
             }
             NFA* nfa = parser.string2nfa(re);
@@ -348,8 +358,8 @@ int main(int argc, char **argv){
 #endif
         //生成PFDFA / PFAC
         for(auto &re: *regex_list) {
-            if(strlen(re) < 1) {
-                fprintf(stderr, "len(re) = 0!\n");
+            if(strlen(re) < 2) {
+                fprintf(stderr, "len(re) < 2!\n");
                 continue;
             }
             NFA* nfa = parser.string2nfa(re, true);
@@ -410,8 +420,9 @@ int main(int argc, char **argv){
             //tr->traverse(dfa);
             //if (dfa->get_default_tx()!=NULL) tr->traverse_compressed(dfa);
         }
-
         if(anchor_dfa != nullptr){
+            //test PFAC outtransitions
+            test_outtrans(anchor_dfa);
             tr->traverse_test_PFAC_speed(anchor_dfa, 1);
             tr->traverse_test_PFAC_speed_DFC_improve(anchor_dfa, 1);
             //tr->traverse_test_PFAC_speed2(anchor_dfa, 1);
